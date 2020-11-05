@@ -3,7 +3,7 @@ channels:
   - terradue
   - conda-forge
 dependencies:
-  - instac==0.8.1
+  - instac==0.9.0
   - numpy
   - pyyaml
   - click
