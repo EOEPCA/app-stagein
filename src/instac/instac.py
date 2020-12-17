@@ -25,10 +25,18 @@ def entry(data_dir, input_references, store_username, store_apikey,s3_endpoint):
 
 
 def main(data_dir, input_references, store_username, store_apikey,s3_endpoint):
+
+    # if target is not specified, the data will be staged in 
+    # a folder called staged-data
+    if data_dir is None:
+        data_dir = "staged-data"
+
+    # setting stagein username and password env variables
     if store_username is not None:
         os.environ['STAGEIN_USERNAME'] = store_username
         os.environ['STAGEIN_PASSWORD'] = store_apikey
     
+    # setting S3 endpoint env variable
     if s3_endpoint is not None:
         os.environ['S3_ENDPOINT'] = s3_endpoint
 
@@ -48,7 +56,8 @@ def main(data_dir, input_references, store_username, store_apikey,s3_endpoint):
             for item in thing.get_items():
                 items.append(item)
 
-    #   
+    # in order to make STAC_IO.read_text_method work with simple
+    # http urls we are unsetting the S3 endpoint
     del os.environ['S3_ENDPOINT']
     
     # create catalog
