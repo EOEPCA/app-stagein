@@ -18,13 +18,15 @@ logging.basicConfig(stream=sys.stderr,
 @click.option('--target', '-t', 'data_dir', help='target directory')
 @click.option('--store_username', '-u', 'store_username', default=None, help='store username')
 @click.option('--store_apikey', '-p', 'store_apikey', default=None, help='store username')
-@click.option('--s3_endpoint', '-s', 's3_endpoint', default=None, help='S3 enpoint')
+@click.option('--s3_endpoint', '-e', 's3_endpoint', default=None, help='S3 enpoint')
+@click.option('--s3_region', '-r', 's3_region', default=None, help='S3 Region')
+@click.option('--s3_signature_version', '-s', 's3_signature_version', default=None, help='S3 Signature Version')
 @click.argument('input_references', nargs=-1, required=False)
-def entry(data_dir, input_references, store_username, store_apikey,s3_endpoint):
-    main(data_dir, input_references, store_username, store_apikey,s3_endpoint)
+def entry(data_dir, input_references, store_username, store_apikey,s3_endpoint,s3_region, s3_signature_version):
+    main(data_dir, input_references, store_username, store_apikey,s3_endpoint,s3_region, s3_signature_version)
 
 
-def main(data_dir, input_references, store_username, store_apikey,s3_endpoint):
+def main(data_dir, input_references, store_username, store_apikey,s3_endpoint,s3_region, s3_signature_version):
 
     # if target is not specified, the data will be staged in 
     # a folder called staged-data
@@ -36,9 +38,16 @@ def main(data_dir, input_references, store_username, store_apikey,s3_endpoint):
         os.environ['STAGEIN_USERNAME'] = store_username
         os.environ['STAGEIN_PASSWORD'] = store_apikey
     
-    # setting S3 endpoint env variable
+    # setting S3 env variables
     if s3_endpoint is not None:
         os.environ['S3_ENDPOINT'] = s3_endpoint
+
+    if s3_region is not None:
+        os.environ['S3_REGION'] = s3_region
+
+    if s3_signature_version is not None:
+        os.environ['S3_SIGNATURE_VERSION'] = s3_signature_version
+
 
     STAC_IO.read_text_method = my_read_method
 
@@ -49,6 +58,7 @@ def main(data_dir, input_references, store_username, store_apikey,s3_endpoint):
         input_reference=input_reference.strip("/")
         thing = pystac.read_file(input_reference)
 
+        print(f"reading file {input_reference}")
         if isinstance(thing, pystac.item.Item):
             items.append(thing)
 
@@ -58,7 +68,7 @@ def main(data_dir, input_references, store_username, store_apikey,s3_endpoint):
 
     # in order to make STAC_IO.read_text_method work with simple
     # http urls we are unsetting the S3 endpoint
-    del os.environ['S3_ENDPOINT']
+    #del os.environ['S3_ENDPOINT']
     
     # create catalog
     catalog = Catalog(id='catalog',

@@ -7,7 +7,11 @@ import boto3
 from botocore.client import Config
 from pprint import pprint
 from botocore.exceptions import ClientError
+from click import ClickException
 
+
+class S3Error(ClickException):
+    pass
 
 def read_http_method(uri):
 
@@ -24,34 +28,22 @@ def read_s3_method(uri):
 
     parsed = urlparse(uri, allow_fragments=False)
 
-    # BUCKET STYLE ACCESS
-    if parsed.scheme == 's3':
-        # example: s3://bucket_name/folder1/folder2/file1.json'
-        # ParseResult(scheme='s3', netloc='bucket_name', path='/folder1/folder2/file1.json', params='', query='', fragment='')
-        bucket = parsed.netloc
-        key =parsed.path[1:]
-        S3_endpoint = os.environ.get('S3_ENDPOINT', None)
-        myconfig = Config(signature_version='s3v4')
-
-    # PATH STYLE ACCESS
-    else:
-        # example: https://s3.Region.amazonaws.com/bucket-name/key name
-        # ParseResult(scheme='https', netloc='s3.Region.amazonaws.com', path='/bucket-name/key name', params='', query='', fragment='')
-        bucket = parsed.path.split("/")[1]
-        key = parsed.path.split("/")[2:]
-        S3_endpoint = os.environ.get('S3_ENDPOINT', parsed.netloc)
-        myconfig = Config(
-            signature_version='s3v4',
-            s3={'addressing_style': 'path'})
+    # example: https://s3.Region.amazonaws.com/bucket-name/key name
+    # ParseResult(scheme='https', netloc='s3.Region.amazonaws.com', path='/bucket-name/key name', params='', query='', fragment='')
+    bucket = parsed.netloc
+    key = parsed.path.split("/",1)[1]
+    S3_endpoint = os.environ.get('S3_ENDPOINT', parsed.netloc)
+    myconfig = Config(
+        signature_version='s3v4',
+        s3={'addressing_style': 'path'})
 
     if S3_endpoint is None:
-        print("S3 endpoint not provided")
-        raise
+        raise S3Error(f"S3 endpoint not provided")
 
     S3_access_key_id = os.environ.get('STAGEIN_USERNAME', None)
     S3_secret_access_key = os.environ.get('STAGEIN_PASSWORD', None)
-    S3_region_name = os.environ.get('S3_REGION_NAME', "us-east-1")
-    S3_signature_version = os.environ.get('S3_SIGNATURE_VERSION', 's3v4')
+    S3_region_name = os.environ.get('S3_REGION_NAME', None)
+    S3_signature_version = os.environ.get('S3_SIGNATURE_VERSION', None)
 
     s3 = boto3.resource('s3',
                         endpoint_url=S3_endpoint,
@@ -65,15 +57,9 @@ def read_s3_method(uri):
         response = obj.get()['Body'].read().decode('utf-8')
     except ClientError as ex:
         if ex.response['Error']['Code'] == 'NoSuchKey':
-            # path could be a directory
-            # Trying {key}/catalog.json
-            try:
-                obj = s3.Object(bucket, f"{key}/catalog.json")
-                response = obj.get()['Body'].read().decode('utf-8')
-            except ClientError as ex2:
-                if ex.response['Error']['Code'] == 'NoSuchKey':
-                    print(f"S3 key {key} not found.")
-                    raise
+            raise S3Error(f"S3 object with key \"{key}\" does not exist.")
+        elif ex.response['Error']['Code'] == 'NoSuchBucket':
+            raise S3Error(f"S3 bucket \"{bucket}\" does not exist.")
         else:
             raise ex
 
@@ -90,7 +76,7 @@ def my_read_method(uri):
     response = None
 
     # url scheme
-    if parsed.scheme == 's3' or os.environ.get('S3_ENDPOINT'):
+    if parsed.scheme == 's3':
         response = read_s3_method(uri)
     elif parsed.scheme == 'http' or parsed.scheme == 'https':
         response = read_http_method(uri)
