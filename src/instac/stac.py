@@ -33,25 +33,29 @@ def read_s3_method(uri):
     bucket = parsed.netloc
     key = parsed.path.split("/",1)[1]
     S3_endpoint = os.environ.get('S3_ENDPOINT', parsed.netloc)
-    myconfig = Config(
-        signature_version='s3v4',
-        s3={'addressing_style': 'path'})
+    S3_region_name = os.environ.get('S3_REGION_NAME', None)
 
     if S3_endpoint is None:
         raise S3Error(f"S3 endpoint not provided")
 
     S3_access_key_id = os.environ.get('STAGEIN_USERNAME', None)
     S3_secret_access_key = os.environ.get('STAGEIN_PASSWORD', None)
-    S3_region_name = os.environ.get('S3_REGION_NAME', None)
-    S3_signature_version = os.environ.get('S3_SIGNATURE_VERSION', None)
+    S3_signature_version = os.environ.get('S3_SIGNATURE_VERSION', 'v4')
+
+
+    myconfig = Config(
+        region_name =S3_region_name,
+        signature_version=S3_signature_version,
+        s3={'addressing_style': 'auto'})
 
     s3 = boto3.resource('s3',
                         endpoint_url=S3_endpoint,
                         aws_access_key_id=S3_access_key_id,
                         aws_secret_access_key=S3_secret_access_key,
                         config=myconfig,
-                        region_name=S3_region_name)
-
+                        region_name=S3_region_name
+                        )
+    
     try:
         obj = s3.Object(bucket, key)
         response = obj.get()['Body'].read().decode('utf-8')

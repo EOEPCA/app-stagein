@@ -43,7 +43,7 @@ def main(data_dir, input_references, store_username, store_apikey,s3_endpoint,s3
         os.environ['S3_ENDPOINT'] = s3_endpoint
 
     if s3_region is not None:
-        os.environ['S3_REGION'] = s3_region
+        os.environ['S3_REGION_NAME'] = s3_region
 
     if s3_signature_version is not None:
         os.environ['S3_SIGNATURE_VERSION'] = s3_signature_version
