@@ -44,17 +44,18 @@ def read_s3_method(uri):
 
 
     myconfig = Config(
-        region_name =S3_region_name,
-        signature_version=S3_signature_version,
-        s3={'addressing_style': 'auto'})
+            region_name =S3_region_name,
+            signature_version=S3_signature_version
+            )
+
 
     s3 = boto3.resource('s3',
                         endpoint_url=S3_endpoint,
                         aws_access_key_id=S3_access_key_id,
                         aws_secret_access_key=S3_secret_access_key,
-                        config=myconfig,
-                        region_name=S3_region_name
+                        config=myconfig
                         )
+
     
     try:
         obj = s3.Object(bucket, key)
