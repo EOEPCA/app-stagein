@@ -76,7 +76,7 @@ def main(data_dir, input_references, store_username, store_apikey,s3_endpoint,s3
 
     catalog.add_items(items)
 
-    catalog.normalize_and_save(root_href="./",
+    catalog.normalize_and_save(root_href=data_dir,
                                catalog_type=CatalogType.RELATIVE_PUBLISHED)
 
     catalog.describe()
